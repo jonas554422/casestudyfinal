@@ -68,7 +68,7 @@ def maintenance_management():
     st.write(f"Wartungskosten pro Quartal für '{selected_device}': {maintenance_costs[selected_device]} €")
 
 def main():
-    st.title("Nutzer-, Geräte-, Reservierungs- und Wartungs-Verwaltung")
+    st.title("Geräte-Verwaltung")
     action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen/ändern", "Reservierungssystem", "Wartungs-Management"])
 
     if action == "Nutzer anlegen":
