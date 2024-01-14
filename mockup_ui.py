@@ -30,12 +30,14 @@ def create_or_modify_device(device_db, user_db):
         # Überprüfen Sie, ob device_id leer ist, und verwenden Sie 0 als Dummy-Wert
         device_id = int(device_id) if device_id else 0
 
-        # Hinzugefügt: Abrufen des verantwortlichen Benutzers aus der Benutzerdatenbank
+        # Überprüfen Sie, ob der verantwortliche Benutzer als Geräteverantwortlicher registriert ist
         responsible_person = user_db.get_user_by_name_and_email(responsible_person_name, responsible_person_email)
-
-        # Hinzugefügt: Übergeben der verantwortlichen Person an die add_device-Methode
-        result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person)
-        st.success(result)
+        if responsible_person and responsible_person['role'] == 'Geräteverantwortlicher':
+            # Hinzugefügt: Übergeben der verantwortlichen Person an die add_device-Methode
+            result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person)
+            st.success(result)
+        else:
+            st.error("Nutzer ist nicht als Geräteverantwortlicher registriert.")
 
 
 
