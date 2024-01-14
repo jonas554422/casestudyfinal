@@ -1,6 +1,10 @@
 import streamlit as st
+from database import DeviceDatabase  # Corrected import statement
 
-def create_new_user():
+
+
+
+def create_new_user(db):
     st.title("Nutzer anlegen")
     username = st.text_input("Benutzername")
     email = st.text_input("E-Mail")
@@ -9,10 +13,12 @@ def create_new_user():
     submitted = st.button("Nutzer anlegen")
     
     if submitted:
-        # Hier könntest du die Nutzerdaten speichern (zum Beispiel in einer Datenbank)
-        st.success(f"Nutzer '{username}' erfolgreich angelegt als {role} mit der E-Mail '{email}'.")
+        # Hier kannst du die Nutzerdaten in der Datenbank speichern
+        result = db.add_user(username, email, role)
+        st.success(result)
 
-def create_or_modify_device():
+
+def create_or_modify_device(db):
     st.title("Gerät anlegen/ändern")
     device_name = st.text_input("Gerätename")
     device_type = st.selectbox("Gerätetyp", ["Typ A", "Typ B", "Typ C"])
@@ -21,17 +27,18 @@ def create_or_modify_device():
     submitted = st.button("Gerät speichern")
     
     if submitted:
-        # Hier könntest du die Gerätedaten speichern oder aktualisieren
-        st.success(f"Gerät '{device_name}' erfolgreich gespeichert als '{device_type}'.")
+        # Hier kannst du die Gerätedaten in der Datenbank speichern oder aktualisieren
+        result = db.add_device(device_name, device_type, device_description)
+        st.success(result)
+        # Anpassung: Statt der vorherigen Zeile, kannst du die oben stehende Zeile verwenden, um die Rückmeldung von add_device anzuzeigen
 
-def manage_reservations():
+def manage_reservations(db):
     st.title("Reservierung anlegen/entfernen")
-    devices = ["Gerät A", "Gerät B", "Gerät C"]  # Hier könntest du die tatsächlichen Geräte laden
+    devices = db.get_all_devices()  # Hier kannst du die tatsächlichen Geräte aus der Datenbank laden
     selected_device = st.selectbox("Gerät auswählen", devices)
 
-    # Simulieren bereits bestehende Reservierungen für das gewählte Gerät
-    existing_reservations = []  # Hier könntest du die tatsächlichen Reservierungen laden
-    existing_reservations_for_device = [r for r in existing_reservations if r['device'] == selected_device]
+    # Hier kannst du die tatsächlichen Reservierungen aus der Datenbank laden
+    existing_reservations_for_device = db.get_reservations_for_device(selected_device)
 
     if existing_reservations_for_device:
         st.write("Bestehende Reservierungen:")
@@ -44,43 +51,42 @@ def manage_reservations():
     submitted = st.button("Reservierung speichern")
 
     if submitted:
-        # Hier könntest du die Reservierungsdaten speichern oder entfernen
-        if existing_reservations_for_device:
-            st.success(f"Reservierung für '{selected_device}' am '{reservation_date}' entfernt für '{user}'.")
-        else:
-            st.success(f"Reservierung für '{selected_device}' am '{reservation_date}' angelegt für '{user}'.")
+        # Hier kannst du die Reservierungsdaten in der Datenbank speichern oder entfernen
+        db.add_reservation(selected_device, reservation_date, user)
+        st.success(f"Reservierung für '{selected_device}' am '{reservation_date}' {'entfernt' if existing_reservations_for_device else 'angelegt'} für '{user}'.")
 
-def maintenance_management():
+def maintenance_management(db):
     st.title("Wartungs-Management")
-    devices = ["Gerät A", "Gerät B", "Gerät C"]  # Hier könntest du die tatsächlichen Geräte laden
+    devices = db.get_all_devices()  # Hier kannst du die tatsächlichen Geräte aus der Datenbank laden
     selected_device = st.selectbox("Gerät auswählen", devices)
 
-    # Simulieren nächste Wartungstermine für das gewählte Gerät
-    next_maintenance = {}  # Hier könntest du die tatsächlichen Wartungstermine laden
-    next_maintenance[selected_device] = "31. März 2024"  # Beispiel für den nächsten Wartungstermin
+    # Hier kannst du die tatsächlichen Wartungstermine aus der Datenbank laden
+    next_maintenance = db.get_next_maintenance(selected_device)
 
-    st.write(f"Nächste Wartung für '{selected_device}': {next_maintenance[selected_device]}")
+    st.write(f"Nächste Wartung für '{selected_device}': {next_maintenance}")
 
-    # Simulieren Wartungskosten pro Quartal für das gewählte Gerät
-    maintenance_costs = {}  # Hier könntest du die tatsächlichen Kosten laden
-    maintenance_costs[selected_device] = 1500  # Beispiel für die Wartungskosten pro Quartal
+    # Hier kannst du die tatsächlichen Wartungskosten aus der Datenbank laden
+    maintenance_costs = db.get_maintenance_costs(selected_device)
 
-    st.write(f"Wartungskosten pro Quartal für '{selected_device}': {maintenance_costs[selected_device]} €")
+    st.write(f"Wartungskosten pro Quartal für '{selected_device}': {maintenance_costs} €")
 
 def main():
     st.title("Geräte-Verwaltung")
+    db = DeviceDatabase('users.json')
     action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen/ändern", "Reservierungssystem", "Wartungs-Management"])
 
     if action == "Nutzer anlegen":
-        create_new_user()
+        create_new_user(db)
     elif action == "Geräte anlegen/ändern":
-        create_or_modify_device()
+        create_or_modify_device(db)
     elif action == "Reservierungssystem":
-        manage_reservations()
+        manage_reservations(db)
     elif action == "Wartungs-Management":
-        maintenance_management()
+        maintenance_management(db)
 
 if __name__ == "__main__":
+    from database import DeviceDatabase
+    db = DeviceDatabase('users.json', 'devices.json')
     main()
 
-#Test Kommentar
+
