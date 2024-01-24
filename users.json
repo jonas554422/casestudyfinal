@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 {"_default": {"1": {"username": "cscscscsc", "email": "cscscscsc", "role": "Ger\u00e4teverantwortlicher"}, "2": {"username": "dfdf", "email": "fdfd", "role": "Ger\u00e4teverantwortlicher"}}}
+=======
+{"_default": {"1": {"username": "Tom", "email": "Tom", "role": "Ger\u00e4teverantwortlicher"}}}
+>>>>>>> c535e9cb5e46fd6a2ecc26ee0bc4e84dd4963d11
