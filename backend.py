@@ -39,3 +39,16 @@ class DeviceDatabase:
         }
         self.device_db.insert(device_data)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich angelegt als '{device_type}' mit der Beschreibung '{device_description}'."
+    
+    def modify_device(self, device_id, device_name, device_type, device_description):
+        # Überprüfe, ob das Gerät existiert
+        Device = Query()
+        if not self.device_db.contains(Device.device_id == device_id):
+            return f"Gerät mit ID '{device_id}' existiert nicht."
+
+        # Aktualisiere das Gerät in der Datenbank
+        self.device_db.update({'device_name': device_name, 'device_type': device_type, 'device_description': device_description}, Device.device_id == device_id)
+        return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich aktualisiert als '{device_type}' mit der Beschreibung '{device_description}'."
+    
+    def get_all_devices(self):
+        return self.device_db.all()
