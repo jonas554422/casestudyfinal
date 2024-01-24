@@ -14,7 +14,7 @@ def create_new_user(user_db):
         st.success(result)
 
 def create_or_modify_device(device_db, user_db):
-    st.title("Gerät anlegen/ändern")
+    st.title("Gerät anlegen")
     device_id = st.number_input("ID/ Inventarnummer", step=1, value=0)
     device_name = st.text_input("Gerätename")
     device_type = st.selectbox("Gerätetyp", ["Typ A", "Typ B", "Typ C"])
@@ -40,6 +40,39 @@ def create_or_modify_device(device_db, user_db):
             st.error("Nutzer ist nicht als Geräteverantwortlicher registriert.")
 
 
+
+def modify_device(device_db, user_db):
+    st.title("Gerät ändern")
+    devices = device_db.get_all_devices()
+    selected_device = st.selectbox("Gerät auswählen", devices)
+
+    # Informationen zum ausgewählten Gerät anzeigen
+    st.write("Ausgewähltes Gerät:")
+    st.write(f"- ID/Inventarnummer: {selected_device['device_id']}")
+    st.write(f"- Gerätename: {selected_device['device_name']}")
+    st.write(f"- Gerätetyp: {selected_device['device_type']}")
+    st.write(f"- Beschreibung: {selected_device['device_description']}")
+    st.write(f"- Verantwortliche Person: {selected_device['responsible_person']['username']}")
+
+    # Eingabefelder für die Aktualisierung der Geräteinformationen
+    device_name = st.text_input("Neuer Gerätename", selected_device['device_name'])
+    device_type = st.selectbox("Neuer Gerätetyp", ["Typ A", "Typ B", "Typ C"], index=["Typ A", "Typ B", "Typ C"].index(selected_device['device_type']))
+    device_description = st.text_area("Neue Beschreibung", selected_device['device_description'])
+
+    submitted = st.button("Gerät aktualisieren")
+
+    if submitted:
+        # Aktualisierte Geräteinformationen speichern
+        updated_device = {
+            "device_id": selected_device['device_id'],
+            "device_name": device_name,
+            "device_type": device_type,
+            "device_description": device_description,
+            "responsible_person": selected_device['responsible_person']
+        }
+        result = device_db.modify_device(updated_device)
+        st.success(result)
+        
 
 
 def manage_reservations(device_db):
@@ -74,16 +107,34 @@ def maintenance_management(device_db):
     maintenance_costs = device_db.get_maintenance_costs(selected_device)
     st.write(f"Wartungskosten pro Quartal für '{selected_device}': {maintenance_costs} €")
 
+
+def modify_device(device_db):
+    st.title("Gerät ändern")
+    devices = device_db.get_all_devices()
+    selected_device = st.selectbox("Gerät auswählen", devices)
+
+    device_name = st.text_input("Neuer Gerätename", value=selected_device['device_name'])
+    device_type = st.selectbox("Neuer Gerätetyp", ["Typ A", "Typ B", "Typ C"], index=["Typ A", "Typ B", "Typ C"].index(selected_device['device_type']))
+    device_description = st.text_area("Neue Beschreibung", value=selected_device['device_description'])
+
+    submitted = st.button("Änderungen speichern")
+    
+    if submitted:
+        result = device_db.modify_device(selected_device['device_id'], device_name, device_type, device_description)
+        st.success(result)
+
 def main():
     st.title("Geräte-Verwaltung")
     user_db = UserDatabase('users.json')
     device_db = DeviceDatabase('devices.json')
-    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen/ändern", "Reservierungssystem", "Wartungs-Management"])
+    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen", "Geräte ändern", "Reservierungssystem", "Wartungs-Management"])
 
     if action == "Nutzer anlegen":
         create_new_user(user_db)
-    elif action == "Geräte anlegen/ändern":
+    elif action == "Geräte anlegen":
         create_or_modify_device(device_db, user_db)
+    elif action == "Geräte ändern":
+        modify_device(device_db)
     elif action == "Reservierungssystem":
         manage_reservations(device_db)
     elif action == "Wartungs-Management":
