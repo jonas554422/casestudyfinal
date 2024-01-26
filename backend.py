@@ -1,5 +1,6 @@
 import json
 from tinydb import TinyDB, Query
+from datetime import datetime
 
 class UserDatabase:
     def __init__(self, user_db_file='users.json'):
@@ -23,19 +24,21 @@ class DeviceDatabase:
     def __init__(self, device_db_file='devices.json'):
         self.device_db = TinyDB(device_db_file)
 
-    # Aktualisierte Methode, um responsible_person zu akzeptieren
     def add_device(self, device_id, device_name, device_type, device_description, responsible_person):
         # Überprüfe, ob das Gerät bereits existiert
         if self.device_db.search(Query().device_id == device_id):
             return f"Gerät mit ID '{device_id}' existiert bereits."
 
         # Füge das neue Gerät zur Datenbank hinzu
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         device_data = {
             "device_id": device_id,
             "device_name": device_name,
             "device_type": device_type,
             "device_description": device_description,
-            "responsible_person": responsible_person  # Hinzugefügt
+            "responsible_person": responsible_person,
+            "__last_update": current_time,
+            "__creation_date": current_time
         }
         self.device_db.insert(device_data)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich angelegt als '{device_type}' mit der Beschreibung '{device_description}'."
@@ -47,7 +50,13 @@ class DeviceDatabase:
             return f"Gerät mit ID '{device_id}' existiert nicht."
 
         # Aktualisiere das Gerät in der Datenbank
-        self.device_db.update({'device_name': device_name, 'device_type': device_type, 'device_description': device_description}, Device.device_id == device_id)
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.device_db.update({
+            'device_name': device_name,
+            'device_type': device_type,
+            'device_description': device_description,
+            '__last_update': current_time
+        }, Device.device_id == device_id)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich aktualisiert als '{device_type}' mit der Beschreibung '{device_description}'."
     
     def get_all_devices(self):
