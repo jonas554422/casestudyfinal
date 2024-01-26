@@ -1,6 +1,13 @@
 import json
 from tinydb import TinyDB, Query
-from datetime import datetime
+from datetime import datetime, date
+
+class DateEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, date):
+            return obj.isoformat()  # Convert date to ISO format
+        return super().default(obj)
+
 
 class UserDatabase:
     def __init__(self, user_db_file='users.json'):
@@ -24,7 +31,7 @@ class DeviceDatabase:
     def __init__(self, device_db_file='devices.json'):
         self.device_db = TinyDB(device_db_file)
 
-    def add_device(self, device_id, device_name, device_type, device_description, responsible_person):
+    def add_device(self, device_id, device_name, device_type, device_description, responsible_person, end_of_life=None):
         # Überprüfe, ob das Gerät bereits existiert
         if self.device_db.search(Query().device_id == device_id):
             return f"Gerät mit ID '{device_id}' existiert bereits."
@@ -37,13 +44,14 @@ class DeviceDatabase:
             "device_type": device_type,
             "device_description": device_description,
             "responsible_person": responsible_person,
+            "end_of_life": end_of_life.isoformat() if end_of_life else None,
             "__last_update": current_time,
             "__creation_date": current_time
         }
         self.device_db.insert(device_data)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich angelegt als '{device_type}' mit der Beschreibung '{device_description}'."
-    
-    def modify_device(self, device_id, device_name, device_type, device_description):
+
+    def modify_device(self, device_id, device_name, device_type, device_description, end_of_life=None):
         # Überprüfe, ob das Gerät existiert
         Device = Query()
         if not self.device_db.contains(Device.device_id == device_id):
@@ -51,13 +59,15 @@ class DeviceDatabase:
 
         # Aktualisiere das Gerät in der Datenbank
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.device_db.update({
+        update_data = {
             'device_name': device_name,
             'device_type': device_type,
             'device_description': device_description,
+            'end_of_life': end_of_life.isoformat() if end_of_life else None,
             '__last_update': current_time
-        }, Device.device_id == device_id)
+        }
+        self.device_db.update(update_data, Device.device_id == device_id)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich aktualisiert als '{device_type}' mit der Beschreibung '{device_description}'."
-    
+
     def get_all_devices(self):
         return self.device_db.all()
