@@ -9,12 +9,26 @@ class DateEncoder(json.JSONEncoder):
         return super().default(obj)
 
 class DatabaseConnector:
-    user_db_file = 'users.json'
-    device_db_file = 'devices.json'
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(DatabaseConnector, cls).__new__(cls)
+            cls._instance.device_db_file = 'devices.json'
+            cls._instance.user_db_file = 'users.json'
+            cls._instance.device_db = TinyDB(cls._instance.device_db_file)
+            cls._instance.user_db = TinyDB(cls._instance.user_db_file)
+        return cls._instance
+
+    def get_devices_table(self):
+        return self.device_db.table()
+
+    def get_users_table(self):
+        return self.user_db.table()
 
 class UserDatabase(DatabaseConnector):
     def __init__(self):
-        self.user_db = TinyDB(self.user_db_file)
+        super().__init__()
 
     def add_user(self, username, email, role):
         # Überprüfe, ob der Benutzer bereits existiert
@@ -31,7 +45,7 @@ class UserDatabase(DatabaseConnector):
 
 class DeviceDatabase(DatabaseConnector):
     def __init__(self):
-        self.device_db = TinyDB(self.device_db_file)
+        super().__init__()
 
     def add_device(self, device_id, device_name, device_type, device_description, responsible_person, end_of_life=None):
         # Überprüfe, ob das Gerät bereits existiert
@@ -73,3 +87,14 @@ class DeviceDatabase(DatabaseConnector):
 
     def get_all_devices(self):
         return self.device_db.all()
+
+# Serializer-Klassen
+class DeviceSerializer:
+    @staticmethod
+    def serialize(device_data):
+        return json.dumps(device_data, cls=DateEncoder)
+
+class UserSerializer:
+    @staticmethod
+    def serialize(user_data):
+        return json.dumps(user_data, cls=DateEncoder)
