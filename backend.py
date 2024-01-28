@@ -14,11 +14,14 @@ class DatabaseConnector:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(DatabaseConnector, cls).__new__(cls)
-            cls._instance.device_db_file = 'devices.json'
-            cls._instance.user_db_file = 'users.json'
-            cls._instance.device_db = TinyDB(cls._instance.device_db_file)
-            cls._instance.user_db = TinyDB(cls._instance.user_db_file)
+            cls._instance._initialize()
         return cls._instance
+
+    def _initialize(self):
+        self.device_db_file = 'devices.json'
+        self.user_db_file = 'users.json'
+        self.device_db = TinyDB(self.device_db_file)
+        self.user_db = TinyDB(self.user_db_file)
 
     def get_devices_table(self):
         return self.device_db.table()
