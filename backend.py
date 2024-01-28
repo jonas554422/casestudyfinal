@@ -31,7 +31,7 @@ class DeviceDatabase:
     def __init__(self, device_db_file='devices.json'):
         self.device_db = TinyDB(device_db_file)
 
-    def add_device(self, device_id, device_name, device_type, device_description, responsible_person, end_of_life=None):
+    def add_device(self, device_id, device_name, device_type, device_description, responsible_person, first_maintenance, end_of_life=None):
         # Überprüfe, ob das Gerät bereits existiert
         if self.device_db.search(Query().device_id == device_id):
             return f"Gerät mit ID '{device_id}' existiert bereits."
@@ -46,12 +46,16 @@ class DeviceDatabase:
             "responsible_person": responsible_person,
             "end_of_life": end_of_life.isoformat() if end_of_life else None,
             "__last_update": current_time,
-            "__creation_date": current_time
+            "__creation_date": current_time,
+            "first_maintenance": first_maintenance.isoformat() if first_maintenance else None
+            #"next_maintenance": next_maintenance,
+            #"__maintenance_interval": __maintenance_interval,
+            #"__maintenance_cost": __maintenance_cost
         }
         self.device_db.insert(device_data)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich angelegt als '{device_type}' mit der Beschreibung '{device_description}'."
 
-    def modify_device(self, device_id, device_name, device_type, device_description, end_of_life=None):
+    def modify_device(self, device_id, device_name, device_type, device_description, next_maintenance, __maintenance_interval, __maintenance_cost, end_of_life=None):
         # Überprüfe, ob das Gerät existiert
         Device = Query()
         if not self.device_db.contains(Device.device_id == device_id):
@@ -64,7 +68,10 @@ class DeviceDatabase:
             'device_type': device_type,
             'device_description': device_description,
             'end_of_life': end_of_life.isoformat() if end_of_life else None,
-            '__last_update': current_time
+            '__last_update': current_time,
+            'next_maintenance': next_maintenance,
+            '__maintenance_interval': __maintenance_interval,
+            '__maintenance_cost': __maintenance_cost
         }
         self.device_db.update(update_data, Device.device_id == device_id)
         return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich aktualisiert als '{device_type}' mit der Beschreibung '{device_description}'."

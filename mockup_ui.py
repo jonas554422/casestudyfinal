@@ -24,6 +24,13 @@ def create_or_modify_device(device_db, user_db):
     responsible_person_name = st.text_input("Name des verantwortlichen Benutzers")
     responsible_person_email = st.text_input("E-Mail des verantwortlichen Benutzers")
     end_of_life = st.date_input("End of Life Datum (optional)")
+    first_maintenance = st.date_input("Datum der ersten Wartung")
+    #next_maintenance = st.date_input("Datum der nächsten Wartung")
+    #__maintenance_interval = st.number_input("Wartungsintervall/Wochen")
+    #__maintenance_cost = st.number_input("Kosten der Wartung/€")
+
+
+
 
     submitted = st.button("Gerät speichern")
     
