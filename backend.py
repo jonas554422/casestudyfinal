@@ -8,10 +8,13 @@ class DateEncoder(json.JSONEncoder):
             return obj.isoformat()  # Convert date to ISO format
         return super().default(obj)
 
+class DatabaseConnector:
+    user_db_file = 'users.json'
+    device_db_file = 'devices.json'
 
-class UserDatabase:
-    def __init__(self, user_db_file='users.json'):
-        self.user_db = TinyDB(user_db_file)
+class UserDatabase(DatabaseConnector):
+    def __init__(self):
+        self.user_db = TinyDB(self.user_db_file)
 
     def add_user(self, username, email, role):
         # Überprüfe, ob der Benutzer bereits existiert
@@ -26,10 +29,9 @@ class UserDatabase:
     def get_user_by_name_and_email(self, name, email):
         return self.user_db.get((Query().username == name) & (Query().email == email))
 
-
-class DeviceDatabase:
-    def __init__(self, device_db_file='devices.json'):
-        self.device_db = TinyDB(device_db_file)
+class DeviceDatabase(DatabaseConnector):
+    def __init__(self):
+        self.device_db = TinyDB(self.device_db_file)
 
     def add_device(self, device_id, device_name, device_type, device_description, responsible_person, end_of_life=None):
         # Überprüfe, ob das Gerät bereits existiert
