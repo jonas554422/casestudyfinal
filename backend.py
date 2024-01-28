@@ -1,6 +1,8 @@
 import json
 from tinydb import TinyDB, Query
 from datetime import datetime, date
+import uuid  # Hinzugefügt: Importiere die uuid-Bibliothek
+
 
 class DateEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -38,14 +40,22 @@ class UserDatabase(DatabaseConnector):
         if self.user_db.search(Query().username == username):
             return "Benutzer existiert bereits."
 
+        # Generiere eine eindeutige Benutzer-ID
+        user_id = str(uuid.uuid4())
+
         # Füge den neuen Benutzer zur Datenbank hinzu
-        user_data = {"username": username, "email": email, "role": role}
+        user_data = {"user_id": user_id, "username": username, "email": email, "role": role}
         self.user_db.insert(user_data)
-        return f"Nutzer '{username}' erfolgreich angelegt als {role} mit der E-Mail '{email}'."
+        return f"Nutzer '{username}' erfolgreich angelegt mit der Benutzer-ID '{user_id}' als {role} mit der E-Mail '{email}'."
 
     def get_user_by_name_and_email(self, name, email):
         return self.user_db.get((Query().username == name) & (Query().email == email))
 
+    def get_all_users(self):
+        return self.user_db.all()
+    
+
+    
 class DeviceDatabase(DatabaseConnector):
     def __init__(self):
         super().__init__()
@@ -101,3 +111,55 @@ class UserSerializer:
     @staticmethod
     def serialize(user_data):
         return json.dumps(user_data, cls=DateEncoder)
+
+
+class ReservationDatabase(DatabaseConnector):
+    def __init__(self):
+        super().__init__()
+
+    def add_reservation(self, device_id, user_id, start_date, end_date):
+        # Überprüfe, ob die Reservierung bereits existiert
+        existing_reservation = self.device_db.search(
+            (Query().device_id == device_id) &
+            (Query().user_id == user_id) &
+            (Query().end_date >= str(start_date)) &
+            (Query().start_date <= str(end_date))
+        )
+
+        if existing_reservation:
+            return "Reservierung für dieses Gerät und diesen Nutzer im angegebenen Zeitraum existiert bereits."
+
+        # Füge die neue Reservierung zur Datenbank hinzu
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        reservation_data = {
+            "device_id": device_id,
+            "user_id": user_id,
+            "start_date": str(start_date),
+            "end_date": str(end_date),
+            "__creation_date": current_time
+        }
+        self.device_db.insert(reservation_data)
+        return f"Reservierung für Gerät ID '{device_id}' und Nutzer ID '{user_id}' erfolgreich angelegt."
+
+    def remove_reservation(self, device_id, user_id, start_date, end_date):
+        # Überprüfe, ob die Reservierung existiert
+        existing_reservation = self.device_db.search(
+            (Query().device_id == device_id) &
+            (Query().user_id == user_id) &
+            (Query().start_date == str(start_date)) &
+            (Query().end_date == str(end_date))
+        )
+
+        if not existing_reservation:
+            return "Keine Reservierung für dieses Gerät und diesen Nutzer im angegebenen Zeitraum gefunden."
+
+        # Entferne die Reservierung aus der Datenbank
+        self.device_db.remove(
+            (Query().device_id == device_id) &
+            (Query().user_id == user_id) &
+            (Query().start_date == str(start_date)) &
+            (Query().end_date == str(end_date))
+        )
+
+        return f"Reservierung für Gerät ID '{device_id}' und Nutzer ID '{user_id}' erfolgreich entfernt."
+
