@@ -10,7 +10,8 @@ def create_new_user():
     submitted = st.button("Nutzer anlegen")
     
     if submitted:
-        result = UserDatabase.add_user(username, email, role)
+        user_db = UserDatabase()  # Instanziere die UserDatabase-Klasse
+        result = user_db.add_user(username, email, role)
         st.success(result)
 
 def create_or_modify_device():
@@ -28,21 +29,24 @@ def create_or_modify_device():
     submitted = st.button("Gerät speichern")
     
     if submitted:
+        user_db = UserDatabase()  # Instanziere die UserDatabase-Klasse
         # Überprüfen Sie, ob device_id leer ist, und verwenden Sie 0 als Dummy-Wert
         device_id = int(device_id) if device_id else 0
 
         # Überprüfen Sie, ob der verantwortliche Benutzer als Geräteverantwortlicher registriert ist
-        responsible_person = UserDatabase.get_user_by_name_and_email(responsible_person_name, responsible_person_email)
+        responsible_person = user_db.get_user_by_name_and_email(responsible_person_name, responsible_person_email)
         if responsible_person and responsible_person['role'] == 'Geräteverantwortlicher':
             # Hinzugefügt: Übergeben der verantwortlichen Person und End of Life Datum an die add_device-Methode
-            result = DeviceDatabase.add_device(device_id, device_name, device_type, device_description, responsible_person, end_of_life)
+            device_db = DeviceDatabase()  # Instanziere die DeviceDatabase-Klasse
+            result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person, end_of_life)
             st.success(result)
         else:
             st.error("Nutzer ist nicht als Geräteverantwortlicher registriert.")
 
 def modify_device():
     st.title("Gerät ändern")
-    devices = DeviceDatabase.get_all_devices()
+    devices_db = DeviceDatabase()  # Instanziere die DeviceDatabase-Klasse
+    devices = devices_db.get_all_devices()
     selected_device = st.selectbox("Gerät auswählen", devices)
 
     device_name = st.text_input("Neuer Gerätename", value=selected_device['device_name'])
@@ -52,7 +56,7 @@ def modify_device():
     submitted = st.button("Änderungen speichern")
     
     if submitted:
-        result = DeviceDatabase.modify_device(selected_device['device_id'], device_name, device_type, device_description)
+        result = devices_db.modify_device(selected_device['device_id'], device_name, device_type, device_description)
         st.success(result)
 
 def main():
