@@ -1,5 +1,7 @@
 import streamlit as st
 from backend import UserDatabase, DeviceDatabase  # Updated import statements
+from backend import ReservationDatabase
+
 
 def create_new_user():
     st.title("Nutzer anlegen")
@@ -59,9 +61,36 @@ def modify_device():
         result = devices_db.modify_device(selected_device['device_id'], device_name, device_type, device_description)
         st.success(result)
 
+
+def create_or_remove_reservation():
+    st.title("Reservierung anlegen oder entfernen")
+    devices_db = DeviceDatabase()
+    users_db = UserDatabase()
+    reservations_db = ReservationDatabase()
+
+    devices = devices_db.get_all_devices()
+    users = users_db.get_all_users()
+
+    selected_device = st.selectbox("Gerät auswählen", devices)
+    selected_user = st.selectbox("Nutzer auswählen", users)
+
+    start_date = st.date_input("Startdatum")  # Keine zusätzliche Konvertierung notwendig
+    end_date = st.date_input("Enddatum")  # Keine zusätzliche Konvertierung notwendig
+
+    add_reservation = st.button("Reservierung anlegen")
+    remove_reservation = st.button("Reservierung entfernen")
+
+    if add_reservation:
+        result = reservations_db.add_reservation(selected_device['device_id'], selected_user['user_id'], start_date, end_date)
+        st.success(result)
+    elif remove_reservation:
+        result = reservations_db.remove_reservation(selected_device['device_id'], selected_user['user_id'], start_date, end_date)
+        st.success(result)
+
+
 def main():
     st.title("Geräte-Verwaltung")
-    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen", "Geräte ändern"])
+    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen", "Geräte ändern", "Reservierung anlegen/entfernen"])
 
     if action == "Nutzer anlegen":
         create_new_user()
@@ -69,6 +98,8 @@ def main():
         create_or_modify_device()
     elif action == "Geräte ändern":
         modify_device()
+    elif action == "Reservierung anlegen/entfernen":
+        create_or_remove_reservation()
 
 if __name__ == "__main__":
     main()
