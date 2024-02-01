@@ -117,8 +117,9 @@ def manage_maintenance():
 
 
 
+
 def main():
-    st.title("Geräte-Verwaltung")
+    st.markdown("*Geräte-Verwaltung*", unsafe_allow_html=True)
 
     # Dictionary mit Aktionen und den zugehörigen Funktionen
     actions = {
@@ -135,7 +136,7 @@ def main():
 
     # Erstellen der Buttons und Aktualisieren des Session States bei Klick
     for action, function in actions.items():
-        if st.sidebar.button(action, key=f"btn_{action}"):
+        if st.sidebar.button(f"*{action}*", key=f"btn_{action}"):
             st.session_state['current_action'] = action
 
     # Aufrufen der entsprechenden Funktion basierend auf dem Session State
@@ -144,4 +145,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
