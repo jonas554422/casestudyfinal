@@ -1,6 +1,6 @@
 import json
 from tinydb import TinyDB, Query
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import uuid
 
 class DateEncoder(json.JSONEncoder):
@@ -54,31 +54,30 @@ class DeviceDatabase(DatabaseConnector):
     def __init__(self):
         super().__init__()
 
-    def add_device(self, device_id, device_name, device_type, device_description, responsible_person, first_maintenance, next_maintenance, __maintenance_interval, __maintenace_coast, end_of_life=None):
+    def add_device(self, device_id, device_name, device_type, device_description, responsible_person, end_of_life=None, first_maintenance=None, next_maintenance=None, maintenance_interval=None, maintenance_cost=None):
+        if self.device_db.search(Query().device_id == device_id):
+            return f"Gerät mit ID '{device_id}' existiert bereits."
+
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Sicherstellen, dass die Datumsfelder korrekt sind
-        first_maintenance = first_maintenance.isoformat() if isinstance(first_maintenance, date) else None
-        next_maintenance = next_maintenance.isoformat() if isinstance(next_maintenance, date) else None
-        end_of_life = end_of_life.isoformat() if isinstance(end_of_life, date) else None
-
-
         device_data = {
-        "device_id": device_id,
-        # restliche Felder
-        "end_of_life": end_of_life,
-        "__last_update": current_time,
-        "__creation_date": current_time,
-        "first_maintenance": first_maintenance,
-        "next_maintenance": next_maintenance,
-        "__maintenance_interval": __maintenance_interval,
-        "__maintenance_coast": __maintenace_coast
-    }
-        self.device_db.insert(json.loads(json.dumps(device_data, cls=DateEncoder)))
+            "device_id": device_id,
+            "device_name": device_name,
+            "device_type": device_type,
+            "device_description": device_description,
+            "responsible_person": responsible_person,
+            "end_of_life": end_of_life.isoformat() if end_of_life else None,
+            "first_maintenance": first_maintenance.isoformat() if first_maintenance else None,
+            "next_maintenance": next_maintenance.isoformat() if next_maintenance else None,
+            "__maintenance_interval": maintenance_interval,
+            "__maintenance_cost": maintenance_cost,
+            "__last_update": current_time,
+            "__creation_date": current_time
+        }
+        self.device_db.insert(device_data)
+        return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich angelegt."
+    
 
-        return f"Gerät '{device_name}' mit ID '{device_id}' erfolgreich angelegt als '{device_type}' mit der Beschreibung '{device_description}'."
-
-    def modify_device(self, device_id, device_name, device_type, device_description, end_of_life):
+    def modify_device(self, device_id, device_name, device_type, device_description, end_of_life=None):
         Device = Query()
         if not self.device_db.contains(Device.device_id == device_id):
             return f"Gerät mit ID '{device_id}' existiert nicht."
@@ -155,10 +154,8 @@ class ReservationDatabase(DatabaseConnector):
     
     def get_current_reservations_with_details(self):
         current_date = datetime.now().date()
-        current_reservations = self.reservation_db.search(
-            (Query().start_date <= str(current_date)) &
-            (Query().end_date >= str(current_date))
-        )
+        # Suche nach allen Reservierungen, die noch nicht abgelaufen sind
+        current_reservations = self.reservation_db.search(Query().end_date >= str(current_date))
 
         detailed_reservations = []
         for res in current_reservations:
@@ -173,6 +170,55 @@ class ReservationDatabase(DatabaseConnector):
             })
 
         return detailed_reservations
+    
+
+
+class MaintenanceDatabase(DatabaseConnector):
+    def __init__(self):
+        super().__init__()
+
+    def get_next_maintenance_dates(self):
+        devices = self.device_db.all()
+        next_maintenance_dates = []
+        for device in devices:
+            if all(key in device for key in ['next_maintenance', '__maintenance_interval']):
+                next_maintenance_date = datetime.fromisoformat(device['next_maintenance'])
+                maintenance_interval = timedelta(days=device['__maintenance_interval'])
+
+                dates = []
+                for _ in range(4):  # Berechnung der nächsten vier Termine
+                    dates.append(next_maintenance_date.strftime("%Y-%m-%d"))
+                    next_maintenance_date += maintenance_interval
+
+                next_maintenance_dates.append({
+                    'device_name': device['device_name'],
+                    'next_maintenances': dates
+                })
+        return next_maintenance_dates
+
+    def calculate_quarterly_maintenance_costs(self):
+        current_year = datetime.now().year
+        devices = self.device_db.all()
+        quarterly_costs = {'Q1': 0, 'Q2': 0, 'Q3': 0, 'Q4': 0}
+
+        for device in devices:
+            if all(key in device for key in ['first_maintenance', '__maintenance_interval', '__maintenance_cost']):
+                first_maintenance_date = datetime.fromisoformat(device['first_maintenance'])
+                maintenance_interval = timedelta(days=device['__maintenance_interval'])
+                maintenance_cost = device['__maintenance_cost']
+
+                next_maintenance_date = first_maintenance_date
+                while next_maintenance_date.year == current_year:
+                    quarter = (next_maintenance_date.month - 1) // 3 + 1
+                    quarterly_costs[f'Q{quarter}'] += maintenance_cost
+                    next_maintenance_date += maintenance_interval
+
+        return quarterly_costs
+
+
+
+
+
 
 class DeviceSerializer:
     @staticmethod
