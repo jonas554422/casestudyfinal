@@ -21,7 +21,12 @@ def create_or_modify_device():
     device_description = st.text_area("Beschreibung")
     responsible_person_name = st.text_input("Name des verantwortlichen Benutzers")
     responsible_person_email = st.text_input("E-Mail des verantwortlichen Benutzers")
-    end_of_life = st.date_input("End of Life Datum (optional)")
+    end_of_life = st.date_input("End of Life Datum (optional)", value=None)
+    end_of_life = end_of_life if end_of_life else None
+    first_maintenance = st.date_input("Datum der ersten Wartung")
+    next_maintenance = st.date_input("Datum der nächsten Wartung")
+    __maintenance_interval = st.number_input("Wartungsinterval in Tagen")
+    __maintenace_coast = st.number_input("Kosten/€ pro Wartung")
     submitted = st.button("Gerät speichern")
     if submitted:
         user_db = UserDatabase()
@@ -29,7 +34,7 @@ def create_or_modify_device():
         responsible_person = user_db.get_user_by_name_and_email(responsible_person_name, responsible_person_email)
         if responsible_person and responsible_person['role'] == 'Geräteverantwortlicher':
             device_db = DeviceDatabase()
-            result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person, end_of_life)
+            result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person, end_of_life, first_maintenance, next_maintenance, __maintenance_interval, __maintenace_coast)
             st.success(result)
         else:
             st.error("Nutzer ist nicht als Geräteverantwortlicher registriert.")
