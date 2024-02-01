@@ -119,17 +119,29 @@ def manage_maintenance():
 
 def main():
     st.title("Geräte-Verwaltung")
-    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen", "Geräte ändern", "Reservierung anlegen/entfernen", "Wartungs-Management"])
-    if action == "Nutzer anlegen":
-        create_new_user()
-    elif action == "Geräte anlegen":
-        create_or_modify_device()
-    elif action == "Geräte ändern":
-        modify_device()
-    elif action == "Reservierung anlegen/entfernen":
-        create_or_remove_reservation()
-    elif action == "Wartungs-Management":
-        manage_maintenance()
+
+    # Dictionary mit Aktionen und den zugehörigen Funktionen
+    actions = {
+        "Nutzer anlegen": create_new_user,
+        "Geräte anlegen": create_or_modify_device,
+        "Geräte ändern": modify_device,
+        "Reservierung anlegen/entfernen": create_or_remove_reservation,
+        "Wartungs-Management": manage_maintenance
+    }
+
+    # Initialisieren des Session States
+    if 'current_action' not in st.session_state:
+        st.session_state['current_action'] = None
+
+    # Erstellen der Buttons und Aktualisieren des Session States bei Klick
+    for action, function in actions.items():
+        if st.sidebar.button(action, key=f"btn_{action}"):
+            st.session_state['current_action'] = action
+
+    # Aufrufen der entsprechenden Funktion basierend auf dem Session State
+    if st.session_state['current_action']:
+        actions[st.session_state['current_action']]()
 
 if __name__ == "__main__":
     main()
+
