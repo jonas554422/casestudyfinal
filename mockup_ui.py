@@ -1,5 +1,5 @@
 import streamlit as st
-from backend import UserDatabase, DeviceDatabase, ReservationDatabase
+from backend import UserDatabase, DeviceDatabase, ReservationDatabase, MaintenanceDatabase
 from tinydb import Query
 
 def create_new_user():
@@ -14,30 +14,32 @@ def create_new_user():
         st.success(result)
 
 def create_or_modify_device():
-    st.title("Gerät anlegen")
+    st.title("Gerät anlegen oder ändern")
+    device_db = DeviceDatabase()
+    user_db = UserDatabase()
+
     device_id = st.number_input("ID/ Inventarnummer", step=1, value=0)
     device_name = st.text_input("Gerätename")
     device_type = st.selectbox("Gerätetyp", ["Typ A", "Typ B", "Typ C"])
     device_description = st.text_area("Beschreibung")
     responsible_person_name = st.text_input("Name des verantwortlichen Benutzers")
     responsible_person_email = st.text_input("E-Mail des verantwortlichen Benutzers")
-    end_of_life = st.date_input("End of Life Datum (optional)", value=None)
-    end_of_life = end_of_life if end_of_life else None
-    first_maintenance = st.date_input("Datum der ersten Wartung")
-    next_maintenance = st.date_input("Datum der nächsten Wartung")
-    __maintenance_interval = st.number_input("Wartungsinterval in Tagen")
-    __maintenace_coast = st.number_input("Kosten/€ pro Wartung")
+    end_of_life = st.date_input("End of Life Datum (optional)")
+    first_maintenance = st.date_input("Erste Wartung am")
+    next_maintenance = st.date_input("Nächste Wartung am")
+    maintenance_interval = st.number_input("Wartungsintervall in Tagen", step=1, min_value=1)
+    maintenance_cost = st.number_input("Kosten pro Wartung", min_value=0.0, format="%.2f")
+
     submitted = st.button("Gerät speichern")
     if submitted:
-        user_db = UserDatabase()
-        device_id = int(device_id) if device_id else 0
         responsible_person = user_db.get_user_by_name_and_email(responsible_person_name, responsible_person_email)
-        if responsible_person and responsible_person['role'] == 'Geräteverantwortlicher':
-            device_db = DeviceDatabase()
-            result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person, end_of_life, first_maintenance, next_maintenance, __maintenance_interval, __maintenace_coast)
+        if responsible_person:
+            result = device_db.add_device(device_id, device_name, device_type, device_description, responsible_person, end_of_life, first_maintenance, next_maintenance, maintenance_interval, maintenance_cost)
             st.success(result)
         else:
-            st.error("Nutzer ist nicht als Geräteverantwortlicher registriert.")
+            st.error("Verantwortliche Person nicht gefunden.")
+
+
 
 def modify_device():
     st.title("Gerät ändern")
@@ -67,18 +69,15 @@ def create_or_remove_reservation():
     users_db = UserDatabase()
     reservations_db = ReservationDatabase()
 
+    # Auswahlboxen für Geräte und Nutzer
     devices = devices_db.get_all_devices()
     users = users_db.get_all_users()
 
-    # Erstelle ein Dictionary mit Geräte-ID als Schlüssel und dem Gerätenamen als Wert
-    # Fallback auf 'Unbekanntes Gerät', falls 'device_name' nicht vorhanden ist
-    device_options = {device['device_id']: device.get('device_name', 'Unbekanntes Gerät') for device in devices}
-    
-    selected_device_id = st.selectbox("Gerät auswählen", list(device_options.keys()), format_func=lambda x: device_options[x])
-    
-    # Erstelle ein Dictionary mit Benutzer-ID als Schlüssel und dem Benutzernamen als Wert
-    user_options = {user['user_id']: user['username'] for user in users}
-    selected_user_id = st.selectbox("Nutzer auswählen", list(user_options.keys()), format_func=lambda x: user_options[x])
+    device_options = {device['device_id']: device for device in devices}
+    user_options = {user['user_id']: user for user in users}
+
+    selected_device_id = st.selectbox("Gerät auswählen", list(device_options.keys()), format_func=lambda x: device_options[x]['device_name'])
+    selected_user_id = st.selectbox("Nutzer auswählen", list(user_options.keys()), format_func=lambda x: user_options[x]['username'])
 
     start_date = st.date_input("Startdatum")
     end_date = st.date_input("Enddatum")
@@ -93,14 +92,34 @@ def create_or_remove_reservation():
 
     st.subheader("Aktuelle Reservierungen:")
     current_reservations = reservations_db.get_current_reservations_with_details()
-    for res in current_reservations:
-        st.write(f"Gerät: {res['device_name']}, Nutzer: {res['user_name']}, Zeitraum: {res['start_date']} bis {res['end_date']}")
+    if current_reservations:
+        for res in current_reservations:
+            st.write(f"Gerät: {res['device_name']}, Nutzer: {res['user_name']}, Zeitraum: {res['start_date']} bis {res['end_date']}")
+    else:
+        st.write("Keine aktuellen Reservierungen vorhanden.")
+
+
+def manage_maintenance():
+    st.title("Wartungs-Management")
+    maintenance_db = MaintenanceDatabase()
+
+    st.subheader("Nächste Wartungstermine")
+    next_maintenance_dates = maintenance_db.get_next_maintenance_dates()
+    for maintenance in next_maintenance_dates:
+        st.write(f"Gerät: {maintenance['device_name']}, Nächsten 4 Wartungen: {', '.join(maintenance['next_maintenances'])}")
+
+
+    st.subheader("Wartungskosten pro Quartal")
+    quarterly_costs = maintenance_db.calculate_quarterly_maintenance_costs()
+    for quarter, cost in quarterly_costs.items():
+        st.write(f"{quarter}: {cost} €")
+
 
 
 
 def main():
     st.title("Geräte-Verwaltung")
-    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen", "Geräte ändern", "Reservierung anlegen/entfernen"])
+    action = st.sidebar.selectbox("Aktion auswählen", ["Nutzer anlegen", "Geräte anlegen", "Geräte ändern", "Reservierung anlegen/entfernen", "Wartungs-Management"])
     if action == "Nutzer anlegen":
         create_new_user()
     elif action == "Geräte anlegen":
@@ -109,6 +128,8 @@ def main():
         modify_device()
     elif action == "Reservierung anlegen/entfernen":
         create_or_remove_reservation()
+    elif action == "Wartungs-Management":
+        manage_maintenance()
 
 if __name__ == "__main__":
     main()
